@@ -91,22 +91,18 @@
       <div id="scan-text" class="scan-text">Align a poetry marker in the frame</div>
     </div>
 
-    <a-scene 
+<a-scene 
       embedded 
       arjs="sourceType: webcam; debugUIEnabled: false;"
-      vr-mode-ui="enabled: false"
-      renderer="logarithmicDepthBuffer: true;">
+      vr-mode-ui="enabled: false">
       
       <a-assets>
         <img id="img-1" src="jah.png">
         <audio id="audio-1" src="adlibs.mp3" preload="auto" crossorigin="anonymous"></audio>
-
-        <img id="img-2" src="book2.png">
-        <audio id="audio-2" src="poem2.mp3" preload="auto" crossorigin="anonymous"></audio>
       </a-assets>
 
       <a-marker preset="hiro" poetry-handler="audioId: audio-1">
-        <a-plane src="#img-1" position="0 0.1 0" rotation="-90 0 0" width="1" height="1.4"></a-plane>
+        <a-box position="0 0.5 0" scale="1 1 1" color="red"></a-box>
       </a-marker>
 
       <a-entity camera></a-entity>
