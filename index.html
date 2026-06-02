@@ -6,70 +6,98 @@
     <script src="https://raw.githack.com/AR-js-org/AR.js/3.3.2/aframe/build/aframe-ar.js"></script>
     
     <style>
-      /* 1. The UI Overlay Container */
-      .ui-overlay {
+      /* 1. The Intro "Tap to Start" Screen */
+      #intro-screen {
         position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        z-index: 9999;
-        /* This prevents the UI from blocking touches to the 3D scene */
-        pointer-events: none; 
+        top: 0; left: 0; width: 100vw; height: 100vh;
+        background: #111;
+        z-index: 10000;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
+        font-family: 'Courier New', Courier, monospace;
+        color: white;
+        transition: opacity 0.5s ease;
       }
 
-      /* 2. The Viewfinder Frame */
+      .start-btn {
+        margin-top: 20px; padding: 15px 40px;
+        font-size: 18px; font-family: 'Courier New', Courier, monospace;
+        background: transparent; color: white;
+        border: 2px solid white; border-radius: 30px;
+        cursor: pointer;
+      }
+
+      .start-btn:active { background: white; color: black; }
+
+      /* 2. The Scanner UI */
+      .ui-overlay {
+        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+        z-index: 9999; pointer-events: none; 
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+      }
+
       .scan-frame {
-        width: 60vw;
-        max-width: 300px;
-        aspect-ratio: 1 / 1;
+        width: 60vw; max-width: 300px; aspect-ratio: 1 / 1;
         border: 4px dashed rgba(255, 255, 255, 0.8);
         border-radius: 20px;
-        box-shadow: 0 0 0 4000px rgba(0, 0, 0, 0.4); /* Darkens the area outside the frame */
+        box-shadow: 0 0 0 4000px rgba(0, 0, 0, 0.4); 
         transition: all 0.3s ease-in-out;
       }
 
-      /* 3. The Active State (When marker is found) */
       .scan-frame.active {
-        border: 4px solid #4CAF50; /* Turns solid green */
-        transform: scale(1.05); /* Pops out slightly */
+        border: 4px solid #4CAF50; transform: scale(1.05);
         box-shadow: 0 0 0 4000px rgba(0, 0, 0, 0.6);
       }
 
-      /* 4. The Instruction Text */
       .scan-text {
-        margin-top: 30px;
-        font-family: 'Courier New', Courier, monospace; /* Fits the poetry theme! */
-        font-weight: bold;
-        color: white;
-        background: rgba(0, 0, 0, 0.7);
-        padding: 12px 24px;
-        border-radius: 30px;
-        text-align: center;
-        font-size: 16px;
-        transition: all 0.3s ease;
+        margin-top: 30px; padding: 12px 24px;
+        font-family: 'Courier New', Courier, monospace; font-weight: bold;
+        color: white; background: rgba(0, 0, 0, 0.7);
+        border-radius: 30px; font-size: 16px;
       }
     </style>
 
     <script>
-      // 5. The Logic to change the UI when a marker is seen
-      AFRAME.registerComponent('ui-controller', {
+      // 3. Logic to hide intro screen and unlock audio
+      function startExperience() {
+        const intro = document.getElementById('intro-screen');
+        intro.style.opacity = '0';
+        setTimeout(() => { intro.style.display = 'none'; }, 500);
+      }
+
+      // 4. Custom component to handle specific audio for specific markers
+      AFRAME.registerComponent('poetry-handler', {
+        schema: {
+          audioId: {type: 'string'} // Allows us to pass the specific audio ID
+        },
         init: function () {
           const frame = document.getElementById('scan-frame');
           const text = document.getElementById('scan-text');
+          const audioEl = document.getElementById(this.data.audioId);
 
           this.el.addEventListener('markerFound', () => {
             frame.classList.add('active');
-            text.innerText = "Poem Unlocked";
+            text.innerText = "Reading Poem...";
+            
+            if (audioEl) {
+              audioEl.play().catch(e => {
+                console.error("Audio blocked:", e);
+                text.innerText = "Error: Please reload and tap Start";
+              });
+            }
           });
 
           this.el.addEventListener('markerLost', () => {
             frame.classList.remove('active');
             text.innerText = "Align a poetry marker in the frame";
+            
+            if (audioEl) {
+              audioEl.pause();
+              audioEl.currentTime = 0; // Rewinds the poem to the beginning
+            }
           });
         }
       });
@@ -77,6 +105,12 @@
   </head>
 
   <body style="margin: 0px; overflow: hidden;">
+
+    <div id="intro-screen">
+      <h2>AR Poetry Book</h2>
+      <p>Turn up your volume</p>
+      <button class="start-btn" onclick="startExperience()">Tap to Start</button>
+    </div>
 
     <div class="ui-overlay">
       <div id="scan-frame" class="scan-frame"></div>
@@ -90,11 +124,20 @@
       renderer="logarithmicDepthBuffer: true;">
       
       <a-assets>
-        <img id="image-1" src="book1.png">
+        <img id="img-1" src="jah.png">
+        <audio id="audio-1" src="adlibs.mp3" preload="auto" crossorigin="anonymous"></audio>
+
+        <img id="img-2" src="book2.png">
+        <audio id="audio-2" src="poem2.mp3" preload="auto" crossorigin="anonymous"></audio>
+        
         </a-assets>
 
-      <a-marker type="pattern" url="marker1.patt" ui-controller>
-        <a-plane src="#image-1" position="0 0.1 0" rotation="-90 0 0" width="1" height="1.4"></a-plane>
+      <a-marker type="pattern" url="quill.patt" poetry-handler="audioId: audio-1">
+        <a-plane src="#img-1" position="0 0.1 0" rotation="-90 0 0" width="1" height="1.4"></a-plane>
+      </a-marker>
+
+      <a-marker type="pattern" url="marker2.patt" poetry-handler="audioId: audio-2">
+        <a-plane src="#img-2" position="0 0.1 0" rotation="-90 0 0" width="1" height="1.4"></a-plane>
       </a-marker>
 
       <a-entity camera></a-entity>
