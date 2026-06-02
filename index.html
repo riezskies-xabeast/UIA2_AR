@@ -19,6 +19,7 @@
         color: white; border: 2px solid white; border-radius: 30px; cursor: pointer;
       }
       .start-btn:active { background: white; color: black; }
+      
       .ui-overlay {
         position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
         z-index: 9999; pointer-events: none; display: flex; flex-direction: column;
@@ -38,13 +39,40 @@
         font-family: 'Courier New', Courier, monospace; color: white;
         background: rgba(0, 0, 0, 0.7); border-radius: 30px; font-size: 16px;
       }
+
+      /* New CSS for the Audio Control Button */
+      #audio-btn {
+        display: none; /* Hidden by default */
+        position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
+        padding: 15px 30px; font-size: 18px; font-family: 'Courier New', Courier, monospace;
+        font-weight: bold; background: white; color: black; border: none;
+        border-radius: 30px; cursor: pointer; z-index: 10001; pointer-events: auto;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.5); transition: background 0.2s;
+      }
+      #audio-btn:active { background: #ccc; }
     </style>
 
     <script>
+      let currentAudio = null; // Global variable to track which audio is ready to play
+
       function startExperience() {
         const intro = document.getElementById('intro-screen');
         intro.style.opacity = '0';
         setTimeout(() => { intro.style.display = 'none'; }, 500);
+      }
+
+      // New function to handle the Play/Pause button click
+      function toggleAudio() {
+        const btn = document.getElementById('audio-btn');
+        if (currentAudio) {
+          if (currentAudio.paused) {
+            currentAudio.play();
+            btn.innerText = "⏸ Pause Poem";
+          } else {
+            currentAudio.pause();
+            btn.innerText = "▶️ Play Poem";
+          }
+        }
       }
 
       AFRAME.registerComponent('poetry-handler', {
@@ -52,26 +80,30 @@
         init: function () {
           const frame = document.getElementById('scan-frame');
           const text = document.getElementById('scan-text');
+          const audioBtn = document.getElementById('audio-btn');
           const audioEl = document.getElementById(this.data.audioId);
 
           this.el.addEventListener('markerFound', () => {
             frame.classList.add('active');
-            text.innerText = "Reading Poem...";
-            if (audioEl) {
-              audioEl.play().catch(e => {
-                console.error("Audio blocked:", e);
-                text.innerText = "Error: Please reload and tap Start";
-              });
-            }
+            text.innerText = "Poem Found!";
+            
+            // Set the current audio and show the play button
+            currentAudio = audioEl;
+            audioBtn.style.display = 'block';
+            audioBtn.innerText = "▶️ Play Poem";
           });
 
           this.el.addEventListener('markerLost', () => {
             frame.classList.remove('active');
             text.innerText = "Align a poetry marker in the frame";
-            if (audioEl) {
-              audioEl.pause();
-              audioEl.currentTime = 0; 
+            
+            // Stop audio, reset it to the beginning, and hide the play button
+            if (currentAudio) {
+              currentAudio.pause();
+              currentAudio.currentTime = 0; 
             }
+            currentAudio = null;
+            audioBtn.style.display = 'none';
           });
         }
       });
@@ -91,6 +123,8 @@
       <div id="scan-text" class="scan-text">Align a poetry marker in the frame</div>
     </div>
 
+    <button id="audio-btn" onclick="toggleAudio()">▶️ Play Poem</button>
+
     <a-scene 
       embedded 
       arjs="sourceType: webcam; debugUIEnabled: false;"
@@ -99,10 +133,17 @@
       <a-assets>
         <img id="img-1" src="jah.png">
         <audio id="audio-1" src="adlibs.mp3" preload="auto" crossorigin="anonymous"></audio>
+
+        <img id="img-2" src="book2.png">
+        <audio id="audio-2" src="poem2.mp3" preload="auto" crossorigin="anonymous"></audio>
       </a-assets>
 
-      <a-marker preset="hiro" poetry-handler="audioId: audio-1">
-        <a-box position="0 0.5 0" scale="2 2 2" color="#FF0000"></a-box>
+      <a-marker type="pattern" url="quill.patt" poetry-handler="audioId: audio-1">
+        <a-plane src="#img-1" position="0 0.1 0" rotation="-90 0 0" width="1" height="1.4"></a-plane>
+      </a-marker>
+
+      <a-marker type="pattern" url="marker2.patt" poetry-handler="audioId: audio-2">
+        <a-plane src="#img-2" position="0 0.1 0" rotation="-90 0 0" width="1" height="1.4"></a-plane>
       </a-marker>
 
       <a-entity camera></a-entity>
